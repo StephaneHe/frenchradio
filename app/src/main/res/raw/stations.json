@@ -1,0 +1,356 @@
+{
+  "stations": [
+    {
+      "id": "france_inter",
+      "name": "France Inter",
+      "stream_url": "https://icecast.radiofrance.fr/franceinter-hifi.aac",
+      "logo": "france_inter",
+      "genres": ["Généraliste", "Info", "Culture"],
+      "color": "#E4002B"
+    },
+    {
+      "id": "france_culture",
+      "name": "France Culture",
+      "stream_url": "https://icecast.radiofrance.fr/franceculture-hifi.aac",
+      "logo": "france_culture",
+      "genres": ["Culture", "Débat"],
+      "color": "#91278F"
+    },
+    {
+      "id": "france_info",
+      "name": "France Info",
+      "stream_url": "http://direct.franceinfo.fr/live/franceinfo-midfi.mp3",
+      "logo": "france_info",
+      "genres": ["Info"],
+      "color": "#FFBC00"
+    },
+    {
+      "id": "france_musique",
+      "name": "France Musique",
+      "stream_url": "http://direct.francemusique.fr/live/francemusique-midfi.mp3",
+      "logo": "france_musique",
+      "genres": ["Classique", "Jazz"],
+      "color": "#862633"
+    },
+    {
+      "id": "france_bleu_paris",
+      "name": "France Bleu Paris",
+      "stream_url": "http://direct.francebleu.fr/live/fb1071-midfi.mp3",
+      "logo": "france_bleu",
+      "genres": ["Généraliste", "Info", "Proximité"],
+      "color": "#0064B4"
+    },
+    {
+      "id": "fip",
+      "name": "FIP",
+      "stream_url": "http://direct.fipradio.fr/live/fip-midfi.mp3",
+      "logo": "fip",
+      "genres": ["Éclectique", "Jazz", "Rock", "World"],
+      "color": "#E95E9A"
+    },
+    {
+      "id": "fip_rock",
+      "name": "FIP Rock",
+      "stream_url": "http://direct.fipradio.fr/live/fip-webradio1.mp3",
+      "logo": "fip_rock",
+      "genres": ["Rock"],
+      "color": "#E95E9A"
+    },
+    {
+      "id": "fip_jazz",
+      "name": "FIP Jazz",
+      "stream_url": "http://direct.fipradio.fr/live/fip-webradio2.mp3",
+      "logo": "fip_jazz",
+      "genres": ["Jazz"],
+      "color": "#E95E9A"
+    },
+    {
+      "id": "fip_groove",
+      "name": "FIP Groove",
+      "stream_url": "http://direct.fipradio.fr/live/fip-webradio3.mp3",
+      "logo": "fip_groove",
+      "genres": ["Groove", "Funk"],
+      "color": "#E95E9A"
+    },
+    {
+      "id": "fip_monde",
+      "name": "FIP Monde",
+      "stream_url": "http://direct.fipradio.fr/live/fip-webradio4.mp3",
+      "logo": "fip_monde",
+      "genres": ["World"],
+      "color": "#E95E9A"
+    },
+    {
+      "id": "fip_electro",
+      "name": "FIP Electro",
+      "stream_url": "http://direct.fipradio.fr/live/fip-webradio8.mp3",
+      "logo": "fip_electro",
+      "genres": ["Electro"],
+      "color": "#E95E9A"
+    },
+    {
+      "id": "mouv",
+      "name": "Mouv'",
+      "stream_url": "https://icecast.radiofrance.fr/mouv-hifi.aac",
+      "logo": "mouv",
+      "genres": ["Rap", "Hip-Hop", "RnB"],
+      "color": "#F5A623"
+    },
+    {
+      "id": "rtl",
+      "name": "RTL",
+      "stream_url": "http://streaming.radio.rtl.fr/rtl-1-44-128",
+      "logo": "rtl",
+      "genres": ["Généraliste", "Info", "Divertissement"],
+      "color": "#0055A4"
+    },
+    {
+      "id": "europe1",
+      "name": "Europe 1",
+      "stream_url": "https://europe1.lmn.fm/europe1.mp3",
+      "logo": "europe1",
+      "genres": ["Généraliste", "Info"],
+      "color": "#003DA5"
+    },
+    {
+      "id": "rmc",
+      "name": "RMC",
+      "stream_url": "https://audio.bfmtv.com/rmcradio_128.mp3",
+      "logo": "rmc",
+      "genres": ["Info", "Sport"],
+      "color": "#ED1C24"
+    },
+    {
+      "id": "bfm_business",
+      "name": "BFM Business",
+      "stream_url": "https://audio.bfmtv.com/bfmbusiness_128.mp3",
+      "logo": "bfm_business",
+      "genres": ["Info", "Business"],
+      "color": "#00A3E0"
+    },
+    {
+      "id": "nrj",
+      "name": "NRJ",
+      "stream_url": "https://streaming.nrjaudio.fm/oumvmk8fnozc?origine=fluxurlradio",
+      "logo": "nrj",
+      "genres": ["Hits", "Pop", "Dance"],
+      "color": "#FF0000"
+    },
+    {
+      "id": "nostalgie",
+      "name": "Nostalgie",
+      "stream_url": "https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxurlradio",
+      "logo": "nostalgie",
+      "genres": ["70s", "80s", "90s", "Variété"],
+      "color": "#FFD700"
+    },
+    {
+      "id": "cherie_fm",
+      "name": "Chérie FM",
+      "stream_url": "https://streaming.nrjaudio.fm/ouuku85n3nje?origine=fluxurlradio",
+      "logo": "cherie_fm",
+      "genres": ["Pop", "Variété", "Love"],
+      "color": "#D4145A"
+    },
+    {
+      "id": "rire_chansons",
+      "name": "Rire & Chansons",
+      "stream_url": "https://streaming.nrjaudio.fm/ou8o8xgk7oiu?origine=fluxurlradio",
+      "logo": "rire_chansons",
+      "genres": ["Humour", "Variété"],
+      "color": "#FF6B00"
+    },
+    {
+      "id": "rtl2",
+      "name": "RTL2",
+      "stream_url": "http://streaming.radio.rtl2.fr/rtl2-1-44-128",
+      "logo": "rtl2",
+      "genres": ["Pop", "Rock"],
+      "color": "#FF6600"
+    },
+    {
+      "id": "fun_radio",
+      "name": "Fun Radio",
+      "stream_url": "http://streaming.radio.funradio.fr/fun-1-44-128",
+      "logo": "fun_radio",
+      "genres": ["Dance", "Electro", "Hits"],
+      "color": "#6B0089"
+    },
+    {
+      "id": "skyrock",
+      "name": "Skyrock",
+      "stream_url": "http://icecast.skyrock.net/s/natio_mp3_128k",
+      "logo": "skyrock",
+      "genres": ["Rap", "Hip-Hop", "RnB"],
+      "color": "#000000"
+    },
+    {
+      "id": "rfm",
+      "name": "RFM",
+      "stream_url": "https://stream.rfm.fr/rfm.mp3",
+      "logo": "rfm",
+      "genres": ["80s", "90s", "Pop", "Variété"],
+      "color": "#E30613"
+    },
+    {
+      "id": "radio_nova",
+      "name": "Radio Nova",
+      "stream_url": "http://novazz.ice.infomaniak.ch/novazz-128.mp3",
+      "logo": "radio_nova",
+      "genres": ["World", "Electro", "Funk", "Soul"],
+      "color": "#1DB954"
+    },
+    {
+      "id": "radio_classique",
+      "name": "Radio Classique",
+      "stream_url": "https://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3",
+      "logo": "radio_classique",
+      "genres": ["Classique"],
+      "color": "#1A1A5E"
+    },
+    {
+      "id": "oui_fm",
+      "name": "OÜI FM",
+      "stream_url": "http://ouifm.ice.infomaniak.ch/ouifm-high.mp3",
+      "logo": "oui_fm",
+      "genres": ["Rock", "Alternatif"],
+      "color": "#FF0066"
+    },
+    {
+      "id": "tsf_jazz",
+      "name": "TSF Jazz",
+      "stream_url": "http://tsfjazz.ice.infomaniak.ch/tsfjazz-high.mp3",
+      "logo": "tsf_jazz",
+      "genres": ["Jazz"],
+      "color": "#2C2C54"
+    },
+    {
+      "id": "jazz_radio",
+      "name": "Jazz Radio",
+      "stream_url": "http://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3",
+      "logo": "jazz_radio",
+      "genres": ["Jazz"],
+      "color": "#1A237E"
+    },
+    {
+      "id": "rfi_monde",
+      "name": "RFI Monde",
+      "stream_url": "http://live02.rfi.fr/rfimonde-96k.mp3",
+      "logo": "rfi_monde",
+      "genres": ["Info", "International"],
+      "color": "#0033A0"
+    },
+    {
+      "id": "voltage",
+      "name": "Voltage",
+      "stream_url": "http://start-voltage.ice.infomaniak.ch/start-voltage-high.mp3",
+      "logo": "voltage",
+      "genres": ["Dance", "Electro", "Hits"],
+      "color": "#FF1493"
+    },
+    {
+      "id": "radio_fg",
+      "name": "Radio FG",
+      "stream_url": "https://stream.rcs.revma.com/wknqhm4yuchvv",
+      "logo": "radio_fg",
+      "genres": ["Electro", "Dance", "House"],
+      "color": "#9C27B0"
+    },
+    {
+      "id": "virgin_radio",
+      "name": "Virgin Radio",
+      "stream_url": "http://virageradio.ice.infomaniak.ch/virageradio-natio.mp3",
+      "logo": "virgin_radio",
+      "genres": ["Rock", "Pop", "Alternatif"],
+      "color": "#E60012"
+    },
+    {
+      "id": "sud_radio",
+      "name": "Sud Radio",
+      "stream_url": "https://ice.creacast.com/sudradio",
+      "logo": "sud_radio",
+      "genres": ["Généraliste", "Info", "Talk"],
+      "color": "#FFB81C"
+    },
+    {
+      "id": "m_radio",
+      "name": "M Radio",
+      "stream_url": "http://mfm.ice.infomaniak.ch/mfm-128.mp3",
+      "logo": "m_radio",
+      "genres": ["Pop", "Variété", "Love"],
+      "color": "#E91E63"
+    },
+    {
+      "id": "alouette",
+      "name": "Alouette",
+      "stream_url": "http://alouette.ice.infomaniak.ch/alouette-high.mp3",
+      "logo": "alouette",
+      "genres": ["Pop", "Hits", "Variété"],
+      "color": "#00BCD4"
+    },
+    {
+      "id": "latina",
+      "name": "Latina",
+      "stream_url": "http://start-latina.ice.infomaniak.ch/start-latina-high.mp3",
+      "logo": "latina",
+      "genres": ["Salsa", "Zouk", "World", "Tropicale"],
+      "color": "#FF9800"
+    },
+    {
+      "id": "generations",
+      "name": "Générations",
+      "stream_url": "http://generationfm.ice.infomaniak.ch/generationfm-high.mp3",
+      "logo": "generations",
+      "genres": ["Hip-Hop", "RnB", "Soul"],
+      "color": "#795548"
+    },
+    {
+      "id": "beur_fm",
+      "name": "Beur FM",
+      "stream_url": "http://beurfm.ice.infomaniak.ch/beurfm-high.mp3",
+      "logo": "beur_fm",
+      "genres": ["Raï", "RnB", "World"],
+      "color": "#4CAF50"
+    },
+    {
+      "id": "tropiques_fm",
+      "name": "Tropiques FM",
+      "stream_url": "http://listen.radioking.com/radio/8916/stream/19088",
+      "logo": "tropiques_fm",
+      "genres": ["Zouk", "Tropicale", "Reggae"],
+      "color": "#FF5722"
+    },
+    {
+      "id": "radio_orient",
+      "name": "Radio Orient",
+      "stream_url": "https://stream.rcs.revma.com/7hnrkawf4p8uv.mp3",
+      "logo": "radio_orient",
+      "genres": ["World", "Orient", "Arabe"],
+      "color": "#009688"
+    },
+    {
+      "id": "radio_meuh",
+      "name": "Radio Meuh",
+      "stream_url": "http://radiomeuh.ice.infomaniak.ch/radiomeuh-128.mp3",
+      "logo": "radio_meuh",
+      "genres": ["Éclectique", "Electro", "World"],
+      "color": "#8BC34A"
+    },
+    {
+      "id": "africa_radio",
+      "name": "Africa Radio",
+      "stream_url": "https://webradio1.ice.infomaniak.ch/webradio4-128.mp3",
+      "logo": "africa_radio",
+      "genres": ["World", "Afrique"],
+      "color": "#FFC107"
+    },
+    {
+      "id": "crooner_radio",
+      "name": "Crooner Radio",
+      "stream_url": "http://croonerradio_legends.ice.infomaniak.ch/croonerradio-legends-midfi.mp3",
+      "logo": "crooner_radio",
+      "genres": ["Jazz", "Variété", "Swing"],
+      "color": "#3F51B5"
+    }
+  ]
+}
