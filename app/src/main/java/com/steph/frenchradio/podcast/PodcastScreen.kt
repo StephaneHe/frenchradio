@@ -16,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.steph.frenchradio.model.EpisodeProgress
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import com.steph.frenchradio.player.PlayerController
@@ -46,6 +47,11 @@ fun PodcastScreen(
             onSearchChanged = { viewModel.onSearchQueryChanged(it) },
             onChannelClick = { viewModel.onChannelSelected(it) },
             onRemoveHistory = { viewModel.onRemoveFromHistory(it) },
+            onResumeEpisode = { progress ->
+                val (episode, channel) = viewModel.buildResumeData(progress)
+                playerController.playPodcast(episode, channel)
+            },
+            onRemoveProgress = { viewModel.onRemoveProgress(it) },
         )
     }
 }
@@ -57,6 +63,8 @@ fun PodcastSearchScreen(
     onSearchChanged: (String) -> Unit,
     onChannelClick: (PodcastChannel) -> Unit,
     onRemoveHistory: (String) -> Unit,
+    onResumeEpisode: (EpisodeProgress) -> Unit = {},
+    onRemoveProgress: (String) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         // Search bar
@@ -105,6 +113,24 @@ fun PodcastSearchScreen(
                 }
             }
 
+            // In-progress episodes (only when not searching)
+            if (uiState.searchQuery.isBlank() && uiState.inProgress.isNotEmpty()) {
+                item {
+                    Text(
+                        "In Progress",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+                items(uiState.inProgress, key = { "prog_${it.episodeAudioUrl}" }) { progress ->
+                    InProgressRow(
+                        progress = progress,
+                        onResume = { onResumeEpisode(progress) },
+                        onRemove = { onRemoveProgress(progress.episodeAudioUrl) },
+                    )
+                }
+            }
+
             // History
             if (uiState.searchQuery.isBlank() && uiState.history.isNotEmpty()) {
                 item {
@@ -124,7 +150,9 @@ fun PodcastSearchScreen(
             }
 
             // Empty state
-            if (uiState.searchQuery.isBlank() && uiState.history.isEmpty() && uiState.searchResults.isEmpty()) {
+            if (uiState.searchQuery.isBlank() && uiState.history.isEmpty()
+                && uiState.searchResults.isEmpty() && uiState.inProgress.isEmpty()
+            ) {
                 item {
                     Text(
                         "Search for podcasts to get started",
@@ -136,6 +164,95 @@ fun PodcastSearchScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * Row showing a podcast episode in progress with a progress bar and resume button.
+ */
+@Composable
+fun InProgressRow(
+    progress: EpisodeProgress,
+    onResume: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val fraction = if (progress.durationMs > 0) {
+        (progress.positionMs.toFloat() / progress.durationMs).coerceIn(0f, 1f)
+    } else 0f
+
+    val remaining = if (progress.durationMs > 0) {
+        val remainMs = (progress.durationMs - progress.positionMs).coerceAtLeast(0)
+        formatDuration(remainMs)
+    } else ""
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onResume() }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = progress.channelArtwork,
+            contentDescription = progress.channelName,
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Crop,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = progress.episodeTitle,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = progress.channelName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                if (remaining.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = remaining,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        IconButton(onClick = onRemove) {
+            Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/**
+ * Format milliseconds into a human-readable duration like "1h 23m" or "45m".
+ */
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    return when {
+        hours > 0 -> "${hours}h ${minutes}m left"
+        minutes > 0 -> "${minutes}m left"
+        else -> "<1m left"
     }
 }
 

@@ -3,6 +3,7 @@ package com.steph.frenchradio.podcast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.steph.frenchradio.data.AppPreferences
+import com.steph.frenchradio.model.EpisodeProgress
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import kotlinx.coroutines.Job
@@ -17,6 +18,7 @@ data class PodcastUiState(
     val searchQuery: String = "",
     val searchResults: List<PodcastChannel> = emptyList(),
     val history: List<PodcastChannel> = emptyList(),
+    val inProgress: List<EpisodeProgress> = emptyList(),
     val isSearching: Boolean = false,
     val searchError: String? = null,
     val selectedChannel: PodcastChannel? = null,
@@ -41,6 +43,11 @@ class PodcastViewModel(
         viewModelScope.launch {
             prefs.podcastHistory.collect { history ->
                 _uiState.update { it.copy(history = history) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.episodeProgressList.collect { progress ->
+                _uiState.update { it.copy(inProgress = progress) }
             }
         }
     }
@@ -111,5 +118,36 @@ class PodcastViewModel(
         viewModelScope.launch {
             prefs.removeFromHistory(channelId)
         }
+    }
+
+    /**
+     * Remove an in-progress episode from the saved list.
+     */
+    fun onRemoveProgress(audioUrl: String) {
+        viewModelScope.launch {
+            prefs.removeEpisodeProgress(audioUrl)
+        }
+    }
+
+    /**
+     * Build minimal PodcastEpisode + PodcastChannel from saved progress,
+     * so the caller (PodcastScreen) can invoke playerController.playPodcast().
+     */
+    fun buildResumeData(progress: EpisodeProgress): Pair<PodcastEpisode, PodcastChannel> {
+        val episode = PodcastEpisode(
+            title = progress.episodeTitle,
+            description = "",
+            audioUrl = progress.episodeAudioUrl,
+            publishDate = "",
+            durationSeconds = (progress.durationMs / 1000).toInt(),
+        )
+        val channel = PodcastChannel(
+            id = progress.channelId,
+            name = progress.channelName,
+            author = "",
+            artworkUrl = progress.channelArtwork,
+            feedUrl = progress.feedUrl,
+        )
+        return episode to channel
     }
 }

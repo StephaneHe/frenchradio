@@ -145,11 +145,56 @@ class PodcastViewModelTest {
         assertEquals("From History", viewModel.uiState.value.history[0].name)
     }
 
+    // --- A6: In-progress tests ---
+
+    @Test
+    fun `inProgress from prefs is reflected in state`() = runTest {
+        val progress = makeProgress("http://ep1.mp3", "Episode 1")
+        fakePrefs._progressFlow.value = listOf(progress)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.inProgress.size)
+        assertEquals("Episode 1", viewModel.uiState.value.inProgress[0].episodeTitle)
+    }
+
+    @Test
+    fun `onRemoveProgress calls prefs`() = runTest {
+        viewModel.onRemoveProgress("http://ep1.mp3")
+        advanceUntilIdle()
+
+        assertEquals("http://ep1.mp3", fakePrefs.lastRemovedProgressUrl)
+    }
+
+    @Test
+    fun `buildResumeData constructs correct episode and channel`() {
+        val progress = makeProgress("http://ep1.mp3", "Episode 1")
+        val (episode, channel) = viewModel.buildResumeData(progress)
+
+        assertEquals("http://ep1.mp3", episode.audioUrl)
+        assertEquals("Episode 1", episode.title)
+        assertEquals(120, episode.durationSeconds)
+        assertEquals("ch1", channel.id)
+        assertEquals("Channel 1", channel.name)
+        assertEquals("https://art.jpg", channel.artworkUrl)
+        assertEquals("https://feed.xml", channel.feedUrl)
+    }
+
     // --- Helpers ---
 
     private fun makeChannel(id: String, name: String) = PodcastChannel(
         id = id, name = name, author = "Author",
         artworkUrl = "https://img.com/art.jpg", feedUrl = "https://feed.com/rss.xml",
+    )
+
+    private fun makeProgress(audioUrl: String, title: String) = EpisodeProgress(
+        episodeAudioUrl = audioUrl,
+        episodeTitle = title,
+        channelId = "ch1",
+        channelName = "Channel 1",
+        channelArtwork = "https://art.jpg",
+        feedUrl = "https://feed.xml",
+        positionMs = 60_000L,
+        durationMs = 120_000L,
     )
 }
 
@@ -200,7 +245,7 @@ class FakePodcastPrefs : AppPreferences {
     }
     override suspend fun clearHistory() {}
 
-    // Episode progress (stub for tests that don't need it)
+    // Episode progress
     val _progressFlow = MutableStateFlow<List<EpisodeProgress>>(emptyList())
     override val episodeProgressList: Flow<List<EpisodeProgress>> = _progressFlow
     val savedProgress = mutableListOf<EpisodeProgress>()
