@@ -1,6 +1,5 @@
 package com.steph.frenchradio.player
 
-import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -8,10 +7,13 @@ import androidx.media3.exoplayer.ExoPlayer
 
 /**
  * Real AudioEngine backed by ExoPlayer.
+ *
+ * Accepts an externally-created ExoPlayer (typically from PlaybackService)
+ * so that the player lives inside a foreground service and survives
+ * Activity destruction / screen lock.
  */
-class ExoPlayerAudioEngine(context: Context) : AudioEngine {
+class ExoPlayerAudioEngine(private val exoPlayer: ExoPlayer) : AudioEngine {
 
-    private val exoPlayer: ExoPlayer = ExoPlayer.Builder(context).build()
     private var listener: AudioEngine.Listener? = null
 
     init {
@@ -63,7 +65,7 @@ class ExoPlayerAudioEngine(context: Context) : AudioEngine {
     }
 
     override fun release() {
-        exoPlayer.release()
+        // Do NOT release here — the service owns the player lifecycle
     }
 
     override val isPlaying: Boolean
