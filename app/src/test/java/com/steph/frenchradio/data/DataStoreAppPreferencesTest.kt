@@ -3,6 +3,7 @@ package com.steph.frenchradio.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.steph.frenchradio.model.EpisodeProgress
 import com.steph.frenchradio.model.PodcastChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -137,6 +138,81 @@ class DataStoreAppPreferencesTest {
         assertTrue(history.isEmpty())
     }
 
+    // --- Episode Progress ---
+
+    @Test
+    fun `initially no episode progress`() = runTest {
+        val prefs = createPrefs()
+        val progress = prefs.episodeProgressList.first()
+        assertTrue(progress.isEmpty())
+    }
+
+    @Test
+    fun `saveEpisodeProgress stores entry`() = runTest {
+        val prefs = createPrefs()
+        prefs.saveEpisodeProgress(makeProgress("http://ep1.mp3", "Episode 1", positionMs = 30000L))
+        val progress = prefs.episodeProgressList.first()
+        assertEquals(1, progress.size)
+        assertEquals("Episode 1", progress[0].episodeTitle)
+        assertEquals(30000L, progress[0].positionMs)
+    }
+
+    @Test
+    fun `saveEpisodeProgress updates existing entry by audioUrl`() = runTest {
+        val prefs = createPrefs()
+        prefs.saveEpisodeProgress(makeProgress("http://ep1.mp3", "Episode 1", positionMs = 30000L, updatedAt = 1000L))
+        prefs.saveEpisodeProgress(makeProgress("http://ep1.mp3", "Episode 1", positionMs = 60000L, updatedAt = 2000L))
+        val progress = prefs.episodeProgressList.first()
+        assertEquals(1, progress.size)
+        assertEquals(60000L, progress[0].positionMs)
+    }
+
+    @Test
+    fun `removeEpisodeProgress removes entry`() = runTest {
+        val prefs = createPrefs()
+        prefs.saveEpisodeProgress(makeProgress("http://ep1.mp3", "Episode 1", positionMs = 30000L, updatedAt = 1000L))
+        prefs.saveEpisodeProgress(makeProgress("http://ep2.mp3", "Episode 2", positionMs = 45000L, updatedAt = 2000L))
+        prefs.removeEpisodeProgress("http://ep1.mp3")
+        val progress = prefs.episodeProgressList.first()
+        assertEquals(1, progress.size)
+        assertEquals("http://ep2.mp3", progress[0].episodeAudioUrl)
+    }
+
+    @Test
+    fun `getEpisodeProgress returns correct entry`() = runTest {
+        val prefs = createPrefs()
+        prefs.saveEpisodeProgress(makeProgress("http://ep1.mp3", "Episode 1", positionMs = 30000L, updatedAt = 1000L))
+        prefs.saveEpisodeProgress(makeProgress("http://ep2.mp3", "Episode 2", positionMs = 45000L, updatedAt = 2000L))
+        val found = prefs.getEpisodeProgress("http://ep2.mp3")
+        assertNotNull(found)
+        assertEquals(45000L, found!!.positionMs)
+        val notFound = prefs.getEpisodeProgress("http://missing.mp3")
+        assertNull(notFound)
+    }
+
+    @Test
+    fun `episode progress limited to 100 entries`() = runTest {
+        val prefs = createPrefs()
+        for (i in 1..105) {
+            prefs.saveEpisodeProgress(makeProgress("http://ep$i.mp3", "Episode $i", positionMs = i * 1000L, updatedAt = i.toLong()))
+        }
+        val progress = prefs.episodeProgressList.first()
+        assertEquals(100, progress.size)
+        assertEquals("http://ep105.mp3", progress[0].episodeAudioUrl)
+    }
+
+    @Test
+    fun `episode progress sorted by updatedAt descending`() = runTest {
+        val prefs = createPrefs()
+        prefs.saveEpisodeProgress(makeProgress("http://ep1.mp3", "Old", positionMs = 1000L, updatedAt = 1000L))
+        prefs.saveEpisodeProgress(makeProgress("http://ep2.mp3", "New", positionMs = 2000L, updatedAt = 3000L))
+        prefs.saveEpisodeProgress(makeProgress("http://ep3.mp3", "Mid", positionMs = 3000L, updatedAt = 2000L))
+        val progress = prefs.episodeProgressList.first()
+        assertEquals(listOf("http://ep2.mp3", "http://ep3.mp3", "http://ep1.mp3"), progress.map { it.episodeAudioUrl })
+    }
+
+    // --- Helpers ---
+
     private fun makeChannel(
         id: String,
         name: String,
@@ -148,5 +224,22 @@ class DataStoreAppPreferencesTest {
         artworkUrl = "https://example.com/art.jpg",
         feedUrl = "https://example.com/feed.xml",
         lastPlayedAt = lastPlayedAt,
+    )
+
+    private fun makeProgress(
+        audioUrl: String,
+        title: String,
+        positionMs: Long = 0L,
+        updatedAt: Long = 0L,
+    ) = EpisodeProgress(
+        episodeAudioUrl = audioUrl,
+        episodeTitle = title,
+        channelId = "ch1",
+        channelName = "Channel",
+        channelArtwork = "https://example.com/art.jpg",
+        feedUrl = "https://example.com/feed.xml",
+        positionMs = positionMs,
+        durationMs = 3600000L,
+        updatedAt = updatedAt,
     )
 }

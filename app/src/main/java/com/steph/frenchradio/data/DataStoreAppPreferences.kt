@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.steph.frenchradio.model.EpisodeProgress
 import com.steph.frenchradio.model.PodcastChannel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -25,7 +27,9 @@ class DataStoreAppPreferences(
     companion object {
         val FAVORITES_KEY = stringSetPreferencesKey("radio_favorites")
         val PODCAST_HISTORY_KEY = stringPreferencesKey("podcast_history")
+        val EPISODE_PROGRESS_KEY = stringPreferencesKey("episode_progress")
         const val MAX_HISTORY = 50
+        const val MAX_PROGRESS = 100
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -97,5 +101,55 @@ class DataStoreAppPreferences(
         dataStore.edit { prefs ->
             prefs[PODCAST_HISTORY_KEY] = "[]"
         }
+    }
+
+    // --- Episode Playback Progress ---
+
+    override val episodeProgressList: Flow<List<EpisodeProgress>> =
+        dataStore.data.map { prefs ->
+            val raw = prefs[EPISODE_PROGRESS_KEY] ?: "[]"
+            try {
+                json.decodeFromString<List<EpisodeProgress>>(raw)
+                    .sortedByDescending { it.updatedAt }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+
+    override suspend fun saveEpisodeProgress(progress: EpisodeProgress) {
+        dataStore.edit { prefs ->
+            val raw = prefs[EPISODE_PROGRESS_KEY] ?: "[]"
+            val current = try {
+                json.decodeFromString<List<EpisodeProgress>>(raw).toMutableList()
+            } catch (_: Exception) {
+                mutableListOf()
+            }
+            current.removeAll { it.episodeAudioUrl == progress.episodeAudioUrl }
+            val updated = progress.copy(
+                updatedAt = if (progress.updatedAt > 0) progress.updatedAt
+                    else System.currentTimeMillis()
+            )
+            current.add(0, updated)
+            val trimmed = current.take(MAX_PROGRESS)
+            prefs[EPISODE_PROGRESS_KEY] = json.encodeToString(trimmed)
+        }
+    }
+
+    override suspend fun removeEpisodeProgress(audioUrl: String) {
+        dataStore.edit { prefs ->
+            val raw = prefs[EPISODE_PROGRESS_KEY] ?: "[]"
+            val current = try {
+                json.decodeFromString<List<EpisodeProgress>>(raw)
+            } catch (_: Exception) {
+                emptyList()
+            }
+            val filtered = current.filter { it.episodeAudioUrl != audioUrl }
+            prefs[EPISODE_PROGRESS_KEY] = json.encodeToString(filtered)
+        }
+    }
+
+    override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? {
+        val all = episodeProgressList.first()
+        return all.find { it.episodeAudioUrl == audioUrl }
     }
 }

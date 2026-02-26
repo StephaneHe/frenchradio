@@ -1,6 +1,7 @@
 package com.steph.frenchradio.podcast
 
 import com.steph.frenchradio.data.AppPreferences
+import com.steph.frenchradio.model.EpisodeProgress
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import kotlinx.coroutines.Dispatchers
@@ -198,4 +199,20 @@ class FakePodcastPrefs : AppPreferences {
         lastRemoved = channelId
     }
     override suspend fun clearHistory() {}
+
+    // Episode progress (stub for tests that don't need it)
+    val _progressFlow = MutableStateFlow<List<EpisodeProgress>>(emptyList())
+    override val episodeProgressList: Flow<List<EpisodeProgress>> = _progressFlow
+    val savedProgress = mutableListOf<EpisodeProgress>()
+    var lastRemovedProgressUrl: String? = null
+
+    override suspend fun saveEpisodeProgress(progress: EpisodeProgress) {
+        savedProgress.add(progress)
+    }
+    override suspend fun removeEpisodeProgress(audioUrl: String) {
+        lastRemovedProgressUrl = audioUrl
+    }
+    override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? {
+        return savedProgress.find { it.episodeAudioUrl == audioUrl }
+    }
 }

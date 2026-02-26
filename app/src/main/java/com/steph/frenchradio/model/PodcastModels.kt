@@ -19,3 +19,19 @@ data class PodcastEpisode(
     val publishDate: String,
     val durationSeconds: Int,
 )
+
+/**
+ * Tracks playback progress for a podcast episode so it can be resumed later.
+ */
+@Serializable
+data class EpisodeProgress(
+    val episodeAudioUrl: String,
+    val episodeTitle: String,
+    val channelId: String,
+    val channelName: String,
+    val channelArtwork: String,
+    val feedUrl: String,
+    val positionMs: Long,
+    val durationMs: Long,
+    val updatedAt: Long = 0L,
+)
