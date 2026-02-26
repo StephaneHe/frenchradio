@@ -1,8 +1,16 @@
 package com.steph.frenchradio.player
 
+import com.steph.frenchradio.data.AppPreferences
+import com.steph.frenchradio.model.EpisodeProgress
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import com.steph.frenchradio.model.RadioStation
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -169,6 +177,85 @@ class SimplePlayerControllerTest {
         assertTrue(engine.stopCount >= 1)
     }
 
+
+    // --- Podcast Progress Save (A5) ---
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `pause saves position for podcast`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val testScope = this
+        val ctrl = SimplePlayerController(engine, fakePrefs, testScope)
+
+        val ep = makePodcastEpisode("Ep 1", 600)
+        val ch = makePodcastChannel("pod1", "My Podcast")
+        ctrl.playPodcast(ep, ch)
+        engine.currentPositionMs = 45000L
+        engine.durationMs = 600000L
+        engine.simulateReady()
+
+        ctrl.pause()
+        advanceUntilIdle()
+
+        assertEquals(1, fakePrefs.savedProgress.size)
+        assertEquals("http://test/ep.mp3", fakePrefs.savedProgress[0].episodeAudioUrl)
+        assertEquals(45000L, fakePrefs.savedProgress[0].positionMs)
+        assertEquals("pod1", fakePrefs.savedProgress[0].channelId)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `pause does NOT save position for radio`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val testScope = this
+        val ctrl = SimplePlayerController(engine, fakePrefs, testScope)
+
+        ctrl.playRadio(makeStation("fip", "FIP"))
+        engine.simulateReady()
+        ctrl.pause()
+        advanceUntilIdle()
+
+        assertTrue(fakePrefs.savedProgress.isEmpty())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `playPodcast resumes at saved position`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        fakePrefs.savedProgress.add(EpisodeProgress(
+            episodeAudioUrl = "http://test/ep.mp3",
+            episodeTitle = "Ep 1",
+            channelId = "pod1",
+            channelName = "My Podcast",
+            channelArtwork = "http://test/art.jpg",
+            feedUrl = "http://test/feed.xml",
+            positionMs = 120000L,
+            durationMs = 600000L,
+        ))
+        val testScope = this
+        val ctrl = SimplePlayerController(engine, fakePrefs, testScope)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        advanceUntilIdle()
+
+        assertEquals(120000L, engine.lastSeekPosition)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `onEnded removes progress entry`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val testScope = this
+        val ctrl = SimplePlayerController(engine, fakePrefs, testScope)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        engine.simulateReady()
+        engine.simulateEnded()
+        advanceUntilIdle()
+
+        assertEquals("http://test/ep.mp3", fakePrefs.lastRemovedProgressUrl)
+    }
+
     // --- Helpers ---
 
     private fun makeStation(id: String, name: String, genres: List<String> = emptyList()) =
@@ -203,8 +290,8 @@ class FakeAudioEngine : AudioEngine {
     override fun seekTo(positionMs: Long) { lastSeekPosition = positionMs }
     override fun release() { stop() }
     override val isPlaying: Boolean get() = _isPlaying
-    override val currentPositionMs: Long = 0L
-    override val durationMs: Long = 0L
+    override var currentPositionMs: Long = 0L
+    override var durationMs: Long = 0L
 
     override fun setListener(listener: AudioEngine.Listener) { this.listener = listener }
 
@@ -212,4 +299,36 @@ class FakeAudioEngine : AudioEngine {
     fun simulateBuffering() { listener?.onBuffering() }
     fun simulateError(msg: String) { listener?.onError(msg) }
     fun simulateEnded() { listener?.onEnded() }
+}
+
+/**
+ * Fake AppPreferences for player progress tests.
+ */
+class FakePlayerPrefs : AppPreferences {
+    val _favoriteFlow = MutableStateFlow<Set<String>>(emptySet())
+    override val favoriteStationIds: Flow<Set<String>> = _favoriteFlow
+    override suspend fun toggleFavorite(stationId: String) {}
+
+    val _historyFlow = MutableStateFlow<List<PodcastChannel>>(emptyList())
+    override val podcastHistory: Flow<List<PodcastChannel>> = _historyFlow
+    override suspend fun addToHistory(channel: PodcastChannel) {}
+    override suspend fun removeFromHistory(channelId: String) {}
+    override suspend fun clearHistory() {}
+
+    val savedProgress = mutableListOf<EpisodeProgress>()
+    var lastRemovedProgressUrl: String? = null
+    val _progressFlow = MutableStateFlow<List<EpisodeProgress>>(emptyList())
+    override val episodeProgressList: Flow<List<EpisodeProgress>> = _progressFlow
+
+    override suspend fun saveEpisodeProgress(progress: EpisodeProgress) {
+        savedProgress.removeAll { it.episodeAudioUrl == progress.episodeAudioUrl }
+        savedProgress.add(progress)
+    }
+    override suspend fun removeEpisodeProgress(audioUrl: String) {
+        lastRemovedProgressUrl = audioUrl
+        savedProgress.removeAll { it.episodeAudioUrl == audioUrl }
+    }
+    override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? {
+        return savedProgress.find { it.episodeAudioUrl == audioUrl }
+    }
 }

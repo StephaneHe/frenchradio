@@ -12,4 +12,7 @@ data class PlayerState(
     val isRadio: Boolean = true,
     val durationMs: Long = 0L,
     val positionMs: Long = 0L,
+    // Podcast-specific fields for resume support
+    val channelId: String? = null,
+    val feedUrl: String? = null,
 )
