@@ -20,9 +20,20 @@ data class RadioListUiState(
     val allGenres: List<String> = emptyList(),
 )
 
+/**
+ * Abstraction for persisting station list changes, so the ViewModel
+ * remains testable without needing a real Context/file system.
+ */
+interface StationWriter {
+    fun addStation(station: RadioStation): List<RadioStation>
+    fun updateStation(stationId: String, station: RadioStation): List<RadioStation>
+    fun deleteStation(stationId: String): List<RadioStation>
+}
+
 class RadioListViewModel(
     stations: List<RadioStation>,
     private val prefs: AppPreferences,
+    private val writer: StationWriter? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -56,6 +67,42 @@ class RadioListViewModel(
     fun onToggleFavorite(stationId: String) {
         viewModelScope.launch {
             prefs.toggleFavorite(stationId)
+        }
+    }
+
+    /**
+     * Add a new station. Persists to file and updates in-memory list.
+     */
+    fun addStation(station: RadioStation) {
+        val w = writer ?: return
+        val updated = w.addStation(station)
+        refreshStations(updated)
+    }
+
+    /**
+     * Update an existing station by ID. Persists and refreshes.
+     */
+    fun updateStation(stationId: String, station: RadioStation) {
+        val w = writer ?: return
+        val updated = w.updateStation(stationId, station)
+        refreshStations(updated)
+    }
+
+    /**
+     * Delete a station by ID. Persists and refreshes.
+     */
+    fun deleteStation(stationId: String) {
+        val w = writer ?: return
+        val updated = w.deleteStation(stationId)
+        refreshStations(updated)
+    }
+
+    private fun refreshStations(stations: List<RadioStation>) {
+        _uiState.update { state ->
+            state.copy(
+                stations = stations,
+                allGenres = extractGenres(stations),
+            )
         }
     }
 

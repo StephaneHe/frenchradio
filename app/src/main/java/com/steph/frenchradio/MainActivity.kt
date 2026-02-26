@@ -11,6 +11,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import com.steph.frenchradio.data.DataStoreAppPreferences
+import com.steph.frenchradio.model.RadioStation
 import com.steph.frenchradio.model.StationLoader
 import com.steph.frenchradio.navigation.AppNavigation
 import com.steph.frenchradio.player.ExoPlayerAudioEngine
@@ -21,11 +22,14 @@ import com.steph.frenchradio.podcast.ItunesSearchApi
 import com.steph.frenchradio.podcast.PodcastViewModel
 import com.steph.frenchradio.podcast.RssFeedParser
 import com.steph.frenchradio.radio.RadioListViewModel
+import com.steph.frenchradio.radio.StationWriter
 import com.steph.frenchradio.ui.theme.FrenchRadioTheme
+import kotlinx.coroutines.MainScope
 
 class MainActivity : ComponentActivity() {
 
     private var mediaController: MediaController? = null
+    private val appScope = MainScope()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,8 +37,21 @@ class MainActivity : ComponentActivity() {
         // Dependencies
         val prefs = DataStoreAppPreferences(this)
         val stations = StationLoader.loadStations(this)
+        val context = this
 
-        val radioViewModel = RadioListViewModel(stations, prefs)
+        // Station writer for in-app editing
+        val stationWriter = object : StationWriter {
+            override fun addStation(station: RadioStation): List<RadioStation> =
+                StationLoader.addStation(context, station)
+
+            override fun updateStation(stationId: String, station: RadioStation): List<RadioStation> =
+                StationLoader.updateStation(context, stationId, station)
+
+            override fun deleteStation(stationId: String): List<RadioStation> =
+                StationLoader.deleteStation(context, stationId)
+        }
+
+        val radioViewModel = RadioListViewModel(stations, prefs, stationWriter)
         val podcastViewModel = PodcastViewModel(
             searchApi = ItunesSearchApi(),
             feedParser = RssFeedParser(),
@@ -56,7 +73,7 @@ class MainActivity : ComponentActivity() {
             // in our AudioEngine abstraction.
             val player = PlaybackService.player ?: return@addListener
             val audioEngine = ExoPlayerAudioEngine(player)
-            val playerController = SimplePlayerController(audioEngine)
+            val playerController = SimplePlayerController(audioEngine, prefs, appScope)
 
             setContent {
                 FrenchRadioTheme {

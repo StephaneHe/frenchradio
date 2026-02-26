@@ -6,7 +6,7 @@ import java.io.File
 import java.text.Normalizer
 
 /**
- * Loads radio stations from an external JSON file.
+ * Loads and saves radio stations from/to an external JSON file.
  * On first launch, copies the bundled default to the app's external files directory.
  * The user can then edit the file directly to add/remove/update stations.
  *
@@ -16,7 +16,7 @@ object StationLoader {
 
     private const val FILENAME = "stations.json"
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
     /**
      * Returns the external stations file, creating it from bundled resource if needed.
@@ -74,19 +74,60 @@ object StationLoader {
     }
 
     /**
+     * Saves the full station list to the external JSON file.
+     */
+    fun saveStations(context: Context, stations: List<RadioStation>) {
+        val file = getStationsFile(context)
+        val wrapper = StationsWrapper(stations.sortedBy { stripAccents(it.name).lowercase() })
+        file.writeText(json.encodeToString(StationsWrapper.serializer(), wrapper))
+    }
+
+    /**
+     * Adds a station and persists. Returns the updated sorted list.
+     */
+    fun addStation(context: Context, station: RadioStation): List<RadioStation> {
+        val current = loadStations(context).toMutableList()
+        current.add(station)
+        val sorted = current.sortedBy { stripAccents(it.name).lowercase() }
+        saveStations(context, sorted)
+        return sorted
+    }
+
+    /**
+     * Updates a station by ID and persists. Returns the updated sorted list.
+     */
+    fun updateStation(context: Context, stationId: String, station: RadioStation): List<RadioStation> {
+        val current = loadStations(context).toMutableList()
+        val index = current.indexOfFirst { it.id == stationId }
+        if (index >= 0) {
+            current[index] = station
+        }
+        val sorted = current.sortedBy { stripAccents(it.name).lowercase() }
+        saveStations(context, sorted)
+        return sorted
+    }
+
+    /**
+     * Deletes a station by ID and persists. Returns the updated sorted list.
+     */
+    fun deleteStation(context: Context, stationId: String): List<RadioStation> {
+        val current = loadStations(context).filter { it.id != stationId }
+        saveStations(context, current)
+        return current
+    }
+
+    /**
      * Resets the external file by re-copying the bundled resource.
      * Useful if the user corrupts their file.
      */
-    private fun stripAccents(s: String): String {
-        val normalized = Normalizer.normalize(s, Normalizer.Form.NFD)
-        return normalized.replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
-    }
-
-
     fun resetToDefault(context: Context): File {
         val file = getStationsFile(context)
         if (file.exists()) file.delete()
         return getStationsFile(context)
     }
-}
 
+    private fun stripAccents(s: String): String {
+        val normalized = Normalizer.normalize(s, Normalizer.Form.NFD)
+        return normalized.replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+    }
+}

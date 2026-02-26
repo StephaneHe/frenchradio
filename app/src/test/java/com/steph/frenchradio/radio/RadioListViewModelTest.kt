@@ -23,6 +23,7 @@ class RadioListViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var viewModel: RadioListViewModel
     private lateinit var fakePrefs: FakeAppPreferences
+    private lateinit var fakeWriter: FakeStationWriter
 
     private val testStations = listOf(
         makeStation("nrj", "NRJ", listOf("Hits", "Pop")),
@@ -36,7 +37,8 @@ class RadioListViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakePrefs = FakeAppPreferences()
-        viewModel = RadioListViewModel(testStations, fakePrefs)
+        fakeWriter = FakeStationWriter(testStations.toMutableList())
+        viewModel = RadioListViewModel(testStations, fakePrefs, fakeWriter)
     }
 
     @After
@@ -144,6 +146,43 @@ class RadioListViewModelTest {
         assertTrue(filtered.isEmpty())
     }
 
+    // --- B4: Station editor tests ---
+
+    @Test
+    fun `addStation adds to list and persists`() {
+        val newStation = makeStation("nova", "Radio Nova", listOf("Éclectique"))
+        viewModel.addStation(newStation)
+
+        val state = viewModel.uiState.value
+        assertEquals(6, state.stations.size)
+        assertTrue(state.stations.any { it.id == "nova" })
+        assertTrue(state.allGenres.contains("Éclectique"))
+        assertTrue(fakeWriter.stations.any { it.id == "nova" })
+    }
+
+    @Test
+    fun `updateStation modifies entry and persists`() {
+        val updated = makeStation("fip", "FIP Updated", listOf("Jazz", "Electro"))
+        viewModel.updateStation("fip", updated)
+
+        val state = viewModel.uiState.value
+        val fip = state.stations.find { it.id == "fip" }
+        assertNotNull(fip)
+        assertEquals("FIP Updated", fip!!.name)
+        assertTrue(fip.genres.contains("Electro"))
+        assertTrue(state.allGenres.contains("Electro"))
+    }
+
+    @Test
+    fun `deleteStation removes entry and persists`() {
+        viewModel.deleteStation("skyrock")
+
+        val state = viewModel.uiState.value
+        assertEquals(4, state.stations.size)
+        assertFalse(state.stations.any { it.id == "skyrock" })
+        assertFalse(fakeWriter.stations.any { it.id == "skyrock" })
+    }
+
     // --- Helpers ---
 
     private fun makeStation(id: String, name: String, genres: List<String>) =
@@ -151,6 +190,25 @@ class RadioListViewModelTest {
             id = id, name = name, streamUrl = "http://test/$id",
             logo = id, genres = genres, color = "#000000",
         )
+}
+
+/** Fake StationWriter that operates on an in-memory list. */
+class FakeStationWriter(val stations: MutableList<RadioStation>) : StationWriter {
+    override fun addStation(station: RadioStation): List<RadioStation> {
+        stations.add(station)
+        return stations.sortedBy { it.name }
+    }
+
+    override fun updateStation(stationId: String, station: RadioStation): List<RadioStation> {
+        val index = stations.indexOfFirst { it.id == stationId }
+        if (index >= 0) stations[index] = station
+        return stations.sortedBy { it.name }
+    }
+
+    override fun deleteStation(stationId: String): List<RadioStation> {
+        stations.removeAll { it.id == stationId }
+        return stations.sortedBy { it.name }
+    }
 }
 
 /** Fake AppPreferences for testing without DataStore. */
