@@ -14,12 +14,15 @@ import com.steph.frenchradio.radio.RadioListViewModel
 import com.steph.frenchradio.podcast.PodcastScreen
 import com.steph.frenchradio.podcast.PodcastViewModel
 import com.steph.frenchradio.ui.MiniPlayerBar
+import com.steph.frenchradio.ui.SeekDrawerContent
+import kotlinx.coroutines.delay
 
 enum class AppTab(val label: String) {
     Radio("Radio"),
     Podcasts("Podcasts"),
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
     radioViewModel: RadioListViewModel,
@@ -28,6 +31,30 @@ fun AppNavigation(
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Radio) }
     val playerState by playerController.playerState.collectAsState()
+    var showSeekDrawer by remember { mutableStateOf(false) }
+
+    // Keep position up-to-date while the seek drawer is open
+    LaunchedEffect(showSeekDrawer) {
+        if (showSeekDrawer) {
+            while (true) {
+                playerController.refreshPosition()
+                delay(500)
+            }
+        }
+    }
+
+    // Seek drawer bottom sheet
+    if (showSeekDrawer && !playerState.isRadio) {
+        ModalBottomSheet(
+            onDismissRequest = { showSeekDrawer = false },
+        ) {
+            SeekDrawerContent(
+                positionMs = playerState.positionMs,
+                durationMs = playerState.durationMs,
+                onSeek = { playerController.seekTo(it) },
+            )
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -40,6 +67,18 @@ fun AppNavigation(
                             else playerController.resume()
                         },
                         onStop = { playerController.stop() },
+                        onSeekBack = {
+                            val newPos = (playerState.positionMs - 10_000).coerceAtLeast(0)
+                            playerController.seekTo(newPos)
+                        },
+                        onSeekForward = {
+                            val newPos = (playerState.positionMs + 30_000).let { pos ->
+                                if (playerState.durationMs > 0) pos.coerceAtMost(playerState.durationMs)
+                                else pos
+                            }
+                            playerController.seekTo(newPos)
+                        },
+                        onOpenSeekDrawer = { showSeekDrawer = true },
                     )
                 }
                 NavigationBar {

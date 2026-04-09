@@ -17,4 +17,5 @@ interface PlayerController {
     fun resume()
     fun stop()
     fun seekTo(positionMs: Long)
+    fun refreshPosition()
 }

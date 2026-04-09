@@ -117,6 +117,17 @@ class SimplePlayerController(
         _playerState.update { it.copy(positionMs = positionMs) }
     }
 
+    override fun refreshPosition() {
+        val pos = engine.currentPositionMs
+        val dur = engine.durationMs
+        _playerState.update {
+            it.copy(
+                positionMs = pos,
+                durationMs = if (dur > 0) dur else it.durationMs,
+            )
+        }
+    }
+
     // --- AudioEngine.Listener ---
 
     override fun onBuffering() {

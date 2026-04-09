@@ -4,9 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +23,9 @@ fun MiniPlayerBar(
     state: PlayerState,
     onPlayPause: () -> Unit,
     onStop: () -> Unit,
+    onSeekBack: () -> Unit = {},
+    onSeekForward: () -> Unit = {},
+    onOpenSeekDrawer: () -> Unit = {},
 ) {
     Surface(
         tonalElevation = 4.dp,
@@ -71,12 +77,33 @@ fun MiniPlayerBar(
                 }
             }
 
+            // Rewind 10s (podcast only)
+            if (!state.isRadio) {
+                IconButton(onClick = onSeekBack) {
+                    Icon(Icons.Default.Replay10, contentDescription = "Rewind 10 seconds")
+                }
+            }
+
             // Play/Pause
             IconButton(onClick = onPlayPause) {
                 Icon(
                     if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (state.isPlaying) "Pause" else "Play",
                 )
+            }
+
+            // Forward 30s (podcast only)
+            if (!state.isRadio) {
+                IconButton(onClick = onSeekForward) {
+                    Icon(Icons.Default.Forward30, contentDescription = "Forward 30 seconds")
+                }
+            }
+
+            // Seek drawer (podcast only, when duration is known)
+            if (!state.isRadio && state.durationMs > 0) {
+                IconButton(onClick = onOpenSeekDrawer) {
+                    Icon(Icons.Default.Tune, contentDescription = "Navigation avancée")
+                }
             }
 
             // Stop
