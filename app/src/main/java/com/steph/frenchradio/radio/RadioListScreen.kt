@@ -50,22 +50,9 @@ fun RadioListScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var stationToDelete by remember { mutableStateOf<RadioStation?>(null) }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    editingStation = null
-                    showEditDialog = true
-                },
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add station")
-            }
-        }
-    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier = Modifier.fillMaxSize(),
         ) {
             // Search bar
             OutlinedTextField(
@@ -165,6 +152,18 @@ fun RadioListScreen(
                     }
                 }
             }
+        }
+
+        FloatingActionButton(
+            onClick = {
+                editingStation = null
+                showEditDialog = true
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add station")
         }
     }
 
