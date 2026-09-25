@@ -1,14 +1,15 @@
 package com.steph.frenchradio.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Forward30
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.steph.frenchradio.player.AudioBoostController
 import com.steph.frenchradio.player.PlayerState
 
 @Composable
@@ -26,6 +29,8 @@ fun MiniPlayerBar(
     onSeekBack: () -> Unit = {},
     onSeekForward: () -> Unit = {},
     onOpenSeekDrawer: () -> Unit = {},
+    onOpenBoost: () -> Unit = {},
+    boostPercent: Int = 0,
 ) {
     Surface(
         tonalElevation = 4.dp,
@@ -106,9 +111,38 @@ fun MiniPlayerBar(
                 }
             }
 
+            // Boost (radio + podcast)
+            BoostButton(boostPercent = boostPercent, onClick = onOpenBoost)
+
             // Stop
             IconButton(onClick = onStop) {
                 Icon(Icons.Default.Close, contentDescription = "Stop")
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoostButton(boostPercent: Int, onClick: () -> Unit) {
+    Box {
+        IconButton(onClick = onClick) {
+            Icon(Icons.Default.GraphicEq, contentDescription = "Booster le son")
+        }
+        if (boostPercent > 0) {
+            val gainDb = AudioBoostController.percentToGainDb(boostPercent)
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-2).dp, y = 2.dp),
+            ) {
+                Text(
+                    text = "+$gainDb",
+                    fontSize = 9.sp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                )
             }
         }
     }

@@ -89,6 +89,17 @@
 - [ ] All tests pass
 - [ ] Commit
 
+## Feature C: Listening History & Played Markers (v1.5.0, 2026-09-25)
+
+- [x] C1. `ListenHistoryEntry` + `ListenStatus` (played = end reached or ≥ 90 %, sticky)
+- [x] C2. `AppPreferences` history API + DataStore impl (upsert by audio URL, max 500, seeded from progress)
+- [x] C3. `SimplePlayerController` records start / progress / completion
+- [x] C4. `PodcastViewModel` exposes `listenHistory`, remove / clear / replay
+- [x] C5. "Historique" tab (`HistoryScreen`): date, status, position, replay, delete, clear all
+- [x] C6. Markers "Lu" / "En cours" on episode rows, channel pills on search / browse / recent
+- [x] C7. Tests (DataStoreListenHistoryTest, player + ViewModel) — full suite green
+- [x] C8. Version 1.5.0 / vc7, CHANGELOG, APK built, local commit
+
 ## Final
 - [ ] Full test suite green
 - [ ] Build APK

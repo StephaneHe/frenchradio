@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.steph.frenchradio.data.AppPreferences
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import kotlinx.coroutines.Job
@@ -14,17 +15,29 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+val BROWSE_CATEGORIES = listOf(
+    "Actualités", "Culture", "Science", "Comédie", "Histoire",
+    "Société", "Technologie", "Sport", "Santé", "Éducation",
+    "Arts", "Musique", "Politique", "Économie", "Spiritualité",
+)
+
 data class PodcastUiState(
     val searchQuery: String = "",
     val searchResults: List<PodcastChannel> = emptyList(),
     val history: List<PodcastChannel> = emptyList(),
     val inProgress: List<EpisodeProgress> = emptyList(),
+    val listenHistory: List<ListenHistoryEntry> = emptyList(),
     val isSearching: Boolean = false,
     val searchError: String? = null,
     val selectedChannel: PodcastChannel? = null,
     val episodes: List<PodcastEpisode> = emptyList(),
     val isLoadingEpisodes: Boolean = false,
     val episodeError: String? = null,
+    val selectedTab: Int = 0,
+    val browseCategory: String? = null,
+    val browseResults: List<PodcastChannel> = emptyList(),
+    val isBrowsing: Boolean = false,
+    val browseError: String? = null,
 )
 
 class PodcastViewModel(
@@ -32,6 +45,7 @@ class PodcastViewModel(
     private val feedParser: FeedParser,
     private val urlFetcher: UrlFetcher,
     private val prefs: AppPreferences,
+    private val browseApi: PodcastSearchApi = FyydSearchApi(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PodcastUiState())
@@ -50,6 +64,11 @@ class PodcastViewModel(
                 _uiState.update { it.copy(inProgress = progress) }
             }
         }
+        viewModelScope.launch {
+            prefs.listenHistory.collect { entries ->
+                _uiState.update { it.copy(listenHistory = entries) }
+            }
+        }
     }
 
     fun onSearchQueryChanged(query: String) {
@@ -60,7 +79,7 @@ class PodcastViewModel(
             return
         }
         searchJob = viewModelScope.launch {
-            delay(500) // debounce
+            delay(500)
             search()
         }
     }
@@ -85,8 +104,60 @@ class PodcastViewModel(
         }
     }
 
+    fun onTabSelected(tab: Int) {
+        _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    // Loads browse results into the search list and sets the search query to the category name.
+    // Used by BrowseTab when it redirects to the Search tab.
+    fun onBrowseCategory(category: String) {
+        searchJob?.cancel()
+        _uiState.update {
+            it.copy(searchQuery = category, isSearching = true, searchError = null, searchResults = emptyList())
+        }
+        viewModelScope.launch {
+            try {
+                val results = browseApi.search(category, 30)
+                _uiState.update { it.copy(searchResults = results, isSearching = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isSearching = false, searchError = e.message ?: "Browse failed")
+                }
+            }
+        }
+    }
+
+    fun onBrowseCategorySelected(category: String) {
+        _uiState.update {
+            it.copy(
+                browseCategory = category,
+                browseResults = emptyList(),
+                isBrowsing = true,
+                browseError = null,
+            )
+        }
+        viewModelScope.launch {
+            try {
+                val results = browseApi.search(category, 30)
+                _uiState.update { it.copy(browseResults = results, isBrowsing = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(isBrowsing = false, browseError = e.message ?: "Browse failed")
+                }
+            }
+        }
+    }
+
+    fun onClearBrowse() {
+        _uiState.update {
+            it.copy(browseCategory = null, browseResults = emptyList(), browseError = null)
+        }
+    }
+
     fun onChannelSelected(channel: PodcastChannel) {
-        _uiState.update { it.copy(selectedChannel = channel, isLoadingEpisodes = true, episodeError = null, episodes = emptyList()) }
+        _uiState.update {
+            it.copy(selectedChannel = channel, isLoadingEpisodes = true, episodeError = null, episodes = emptyList())
+        }
         viewModelScope.launch {
             try {
                 val xml = urlFetcher.fetch(channel.feedUrl)
@@ -120,19 +191,42 @@ class PodcastViewModel(
         }
     }
 
-    /**
-     * Remove an in-progress episode from the saved list.
-     */
     fun onRemoveProgress(audioUrl: String) {
         viewModelScope.launch {
             prefs.removeEpisodeProgress(audioUrl)
         }
     }
 
-    /**
-     * Build minimal PodcastEpisode + PodcastChannel from saved progress,
-     * so the caller (PodcastScreen) can invoke playerController.playPodcast().
-     */
+    fun onRemoveListenHistory(audioUrl: String) {
+        viewModelScope.launch {
+            prefs.removeListenHistory(audioUrl)
+        }
+    }
+
+    fun onClearListenHistory() {
+        viewModelScope.launch {
+            prefs.clearListenHistory()
+        }
+    }
+
+    fun buildReplayData(entry: ListenHistoryEntry): Pair<PodcastEpisode, PodcastChannel> {
+        val episode = PodcastEpisode(
+            title = entry.episodeTitle,
+            description = "",
+            audioUrl = entry.episodeAudioUrl,
+            publishDate = "",
+            durationSeconds = (entry.durationMs / 1000).toInt(),
+        )
+        val channel = PodcastChannel(
+            id = entry.channelId,
+            name = entry.channelName,
+            author = "",
+            artworkUrl = entry.channelArtwork,
+            feedUrl = entry.feedUrl,
+        )
+        return episode to channel
+    }
+
     fun buildResumeData(progress: EpisodeProgress): Pair<PodcastEpisode, PodcastChannel> {
         val episode = PodcastEpisode(
             title = progress.episodeTitle,

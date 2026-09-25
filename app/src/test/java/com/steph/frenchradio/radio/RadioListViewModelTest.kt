@@ -2,6 +2,7 @@ package com.steph.frenchradio.radio
 
 import com.steph.frenchradio.data.AppPreferences
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.RadioStation
 import kotlinx.coroutines.Dispatchers
@@ -235,4 +236,16 @@ class FakeAppPreferences : AppPreferences {
     override suspend fun saveEpisodeProgress(progress: EpisodeProgress) {}
     override suspend fun removeEpisodeProgress(audioUrl: String) {}
     override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? = null
+
+    // Listening history (stub)
+    private val _listenFlow = MutableStateFlow<List<ListenHistoryEntry>>(emptyList())
+    override val listenHistory: Flow<List<ListenHistoryEntry>> = _listenFlow
+    override suspend fun recordListen(entry: ListenHistoryEntry) {}
+    override suspend fun removeListenHistory(audioUrl: String) {}
+    override suspend fun clearListenHistory() {}
+
+    // Audio boost (stub)
+    private val _boostFlow = MutableStateFlow(0)
+    override val audioBoostPercent: Flow<Int> = _boostFlow
+    override suspend fun setAudioBoostPercent(percent: Int) { _boostFlow.value = percent }
 }

@@ -14,11 +14,15 @@ import com.steph.frenchradio.data.DataStoreAppPreferences
 import com.steph.frenchradio.model.RadioStation
 import com.steph.frenchradio.model.StationLoader
 import com.steph.frenchradio.navigation.AppNavigation
+import com.steph.frenchradio.player.AudioBoostController
 import com.steph.frenchradio.player.ExoPlayerAudioEngine
 import com.steph.frenchradio.player.PlaybackService
 import com.steph.frenchradio.player.SimplePlayerController
+import com.steph.frenchradio.podcast.AggregatedSearchApi
 import com.steph.frenchradio.podcast.DefaultUrlFetcher
+import com.steph.frenchradio.podcast.FyydSearchApi
 import com.steph.frenchradio.podcast.ItunesSearchApi
+import com.steph.frenchradio.podcast.PodcastIndexSearchApi
 import com.steph.frenchradio.podcast.PodcastViewModel
 import com.steph.frenchradio.podcast.RssFeedParser
 import com.steph.frenchradio.radio.RadioListViewModel
@@ -29,6 +33,7 @@ import kotlinx.coroutines.MainScope
 class MainActivity : ComponentActivity() {
 
     private var mediaController: MediaController? = null
+    private var audioBoostController: AudioBoostController? = null
     private val appScope = MainScope()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +58,11 @@ class MainActivity : ComponentActivity() {
 
         val radioViewModel = RadioListViewModel(stations, prefs, stationWriter)
         val podcastViewModel = PodcastViewModel(
-            searchApi = ItunesSearchApi(),
+            searchApi = AggregatedSearchApi(listOf(
+                ItunesSearchApi(),
+                FyydSearchApi(),
+                PodcastIndexSearchApi(), // clé vide → silencieux jusqu'à config
+            )),
             feedParser = RssFeedParser(),
             urlFetcher = DefaultUrlFetcher(),
             prefs = prefs,
@@ -74,6 +83,8 @@ class MainActivity : ComponentActivity() {
             val player = PlaybackService.player ?: return@addListener
             val audioEngine = ExoPlayerAudioEngine(player)
             val playerController = SimplePlayerController(audioEngine, prefs, appScope)
+            val boostController = AudioBoostController(player, prefs, appScope)
+            audioBoostController = boostController
 
             setContent {
                 FrenchRadioTheme {
@@ -82,6 +93,7 @@ class MainActivity : ComponentActivity() {
                             radioViewModel = radioViewModel,
                             podcastViewModel = podcastViewModel,
                             playerController = playerController,
+                            audioBoostController = boostController,
                         )
                     }
                 }
@@ -90,6 +102,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        audioBoostController?.release()
+        audioBoostController = null
         mediaController?.release()
         mediaController = null
         super.onDestroy()

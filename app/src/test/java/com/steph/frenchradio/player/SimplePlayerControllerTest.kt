@@ -2,6 +2,8 @@ package com.steph.frenchradio.player
 
 import com.steph.frenchradio.data.AppPreferences
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
+import com.steph.frenchradio.model.ListenStatus
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import com.steph.frenchradio.model.RadioStation
@@ -256,6 +258,97 @@ class SimplePlayerControllerTest {
         assertEquals("http://test/ep.mp3", fakePrefs.lastRemovedProgressUrl)
     }
 
+    // --- Listening history ---
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `playPodcast records a started listen in history`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val ctrl = SimplePlayerController(engine, fakePrefs, this)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        advanceUntilIdle()
+
+        val entry = fakePrefs.recordedListens.single()
+        assertEquals("http://test/ep.mp3", entry.episodeAudioUrl)
+        assertEquals("My Podcast", entry.channelName)
+        assertEquals("http://test/feed.xml", entry.feedUrl)
+        assertFalse(entry.completed)
+        assertTrue(entry.lastListenedAt > 0)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `pause records position in history`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val ctrl = SimplePlayerController(engine, fakePrefs, this)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        engine.currentPositionMs = 45000L
+        engine.durationMs = 600000L
+        engine.simulateReady()
+        ctrl.pause()
+        advanceUntilIdle()
+
+        val last = fakePrefs.recordedListens.last()
+        assertEquals(45000L, last.positionMs)
+        assertEquals(600000L, last.durationMs)
+        assertEquals(ListenStatus.STARTED, last.status)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `onEnded records completed listen`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val ctrl = SimplePlayerController(engine, fakePrefs, this)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        engine.simulateReady()
+        engine.simulateEnded()
+        advanceUntilIdle()
+
+        val last = fakePrefs.recordedListens.last()
+        assertTrue(last.completed)
+        assertEquals(ListenStatus.PLAYED, last.status)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `radio does not record history`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        val ctrl = SimplePlayerController(engine, fakePrefs, this)
+
+        ctrl.playRadio(makeStation("fip", "FIP"))
+        engine.simulateReady()
+        ctrl.pause()
+        ctrl.stop()
+        advanceUntilIdle()
+
+        assertTrue(fakePrefs.recordedListens.isEmpty())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `playPodcast restarts from zero when saved position is past played threshold`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        fakePrefs.savedProgress.add(EpisodeProgress(
+            episodeAudioUrl = "http://test/ep.mp3",
+            episodeTitle = "Ep 1",
+            channelId = "pod1",
+            channelName = "My Podcast",
+            channelArtwork = "http://test/art.jpg",
+            feedUrl = "http://test/feed.xml",
+            positionMs = 580000L,
+            durationMs = 600000L,
+        ))
+        val ctrl = SimplePlayerController(engine, fakePrefs, this)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        advanceUntilIdle()
+
+        assertEquals(0L, engine.lastSeekPosition)
+    }
+
     // --- Helpers ---
 
     private fun makeStation(id: String, name: String, genres: List<String> = emptyList()) =
@@ -331,4 +424,15 @@ class FakePlayerPrefs : AppPreferences {
     override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? {
         return savedProgress.find { it.episodeAudioUrl == audioUrl }
     }
+
+    val recordedListens = mutableListOf<ListenHistoryEntry>()
+    private val _listenFlow = MutableStateFlow<List<ListenHistoryEntry>>(emptyList())
+    override val listenHistory: Flow<List<ListenHistoryEntry>> = _listenFlow
+    override suspend fun recordListen(entry: ListenHistoryEntry) { recordedListens.add(entry) }
+    override suspend fun removeListenHistory(audioUrl: String) {}
+    override suspend fun clearListenHistory() {}
+
+    private val _boostFlow = MutableStateFlow(0)
+    override val audioBoostPercent: Flow<Int> = _boostFlow
+    override suspend fun setAudioBoostPercent(percent: Int) { _boostFlow.value = percent }
 }

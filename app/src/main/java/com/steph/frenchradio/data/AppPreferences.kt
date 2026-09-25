@@ -1,6 +1,7 @@
 package com.steph.frenchradio.data
 
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -22,4 +23,14 @@ interface AppPreferences {
     suspend fun saveEpisodeProgress(progress: EpisodeProgress)
     suspend fun removeEpisodeProgress(audioUrl: String)
     suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress?
+
+    // Episode listening history (played / started markers), newest first
+    val listenHistory: Flow<List<ListenHistoryEntry>>
+    suspend fun recordListen(entry: ListenHistoryEntry)
+    suspend fun removeListenHistory(audioUrl: String)
+    suspend fun clearListenHistory()
+
+    // Audio boost percent (0..100), persisted across restarts
+    val audioBoostPercent: Flow<Int>
+    suspend fun setAudioBoostPercent(percent: Int)
 }

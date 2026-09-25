@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,11 +15,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.steph.frenchradio.model.ListenHistoryEntry
+import com.steph.frenchradio.model.ListenStatus
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
+import com.steph.frenchradio.ui.EpisodeListenBadge
+import com.steph.frenchradio.ui.shareEpisode
+import com.steph.frenchradio.ui.sharePodcast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +36,9 @@ fun EpisodeListScreen(
     error: String?,
     onBack: () -> Unit,
     onPlayEpisode: (PodcastEpisode) -> Unit,
+    listenHistory: Map<String, ListenHistoryEntry> = emptyMap(),
 ) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize()) {
         // Header
         Row(
@@ -64,6 +73,9 @@ fun EpisodeListScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            IconButton(onClick = { sharePodcast(context, channel) }) {
+                Icon(Icons.Default.Share, contentDescription = "Partager le podcast")
+            }
         }
 
         if (isLoading) {
@@ -85,7 +97,9 @@ fun EpisodeListScreen(
             items(episodes) { episode ->
                 EpisodeRow(
                     episode = episode,
+                    channel = channel,
                     onPlay = { onPlayEpisode(episode) },
+                    listenEntry = listenHistory[episode.audioUrl],
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
             }
@@ -106,8 +120,12 @@ fun EpisodeListScreen(
 @Composable
 fun EpisodeRow(
     episode: PodcastEpisode,
+    channel: PodcastChannel,
     onPlay: () -> Unit,
+    listenEntry: ListenHistoryEntry? = null,
 ) {
+    val context = LocalContext.current
+    val isPlayed = listenEntry?.status == ListenStatus.PLAYED
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -119,9 +137,13 @@ fun EpisodeRow(
             Text(
                 text = episode.title,
                 style = MaterialTheme.typography.bodyMedium,
+                // Played episodes are slightly de-emphasized (still fully readable)
+                color = if (isPlayed) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            EpisodeListenBadge(listenEntry, modifier = Modifier.padding(vertical = 2.dp))
             Row {
                 if (episode.publishDate.isNotBlank()) {
                     Text(
@@ -138,6 +160,9 @@ fun EpisodeRow(
                     )
                 }
             }
+        }
+        IconButton(onClick = { shareEpisode(context, episode, channel) }) {
+            Icon(Icons.Default.Share, contentDescription = "Partager l'épisode")
         }
         IconButton(onClick = onPlay) {
             Icon(Icons.Default.PlayArrow, contentDescription = "Play")

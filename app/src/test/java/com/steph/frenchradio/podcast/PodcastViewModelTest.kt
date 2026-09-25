@@ -2,6 +2,7 @@ package com.steph.frenchradio.podcast
 
 import com.steph.frenchradio.data.AppPreferences
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +66,52 @@ class PodcastViewModelTest {
 
         assertTrue(viewModel.uiState.value.searchResults.isEmpty())
     }
+
+    // --- Listening history ---
+
+    @Test
+    fun `listen history is exposed in ui state and updates immediately`() = runTest {
+        assertTrue(viewModel.uiState.value.listenHistory.isEmpty())
+        fakePrefs.recordListen(makeListen("http://a.mp3"))
+        advanceUntilIdle()
+        assertEquals("http://a.mp3", viewModel.uiState.value.listenHistory.single().episodeAudioUrl)
+    }
+
+    @Test
+    fun `onRemoveListenHistory removes entry`() = runTest {
+        fakePrefs.recordListen(makeListen("http://a.mp3"))
+        fakePrefs.recordListen(makeListen("http://b.mp3"))
+        viewModel.onRemoveListenHistory("http://a.mp3")
+        advanceUntilIdle()
+
+        assertEquals("http://a.mp3", fakePrefs.lastRemovedListenUrl)
+        assertEquals(listOf("http://b.mp3"), viewModel.uiState.value.listenHistory.map { it.episodeAudioUrl })
+    }
+
+    @Test
+    fun `onClearListenHistory empties history`() = runTest {
+        fakePrefs.recordListen(makeListen("http://a.mp3"))
+        viewModel.onClearListenHistory()
+        advanceUntilIdle()
+
+        assertTrue(fakePrefs.listenHistoryCleared)
+        assertTrue(viewModel.uiState.value.listenHistory.isEmpty())
+    }
+
+    @Test
+    fun `buildReplayData maps history entry to episode and channel`() {
+        val (episode, channel) = viewModel.buildReplayData(makeListen("http://a.mp3"))
+        assertEquals("http://a.mp3", episode.audioUrl)
+        assertEquals(600, episode.durationSeconds)
+        assertEquals("http://feed.xml", channel.feedUrl)
+        assertEquals("Pod", channel.name)
+    }
+
+    private fun makeListen(url: String) = ListenHistoryEntry(
+        episodeAudioUrl = url, episodeTitle = "Ep", channelId = "c1", channelName = "Pod",
+        channelArtwork = "", feedUrl = "http://feed.xml", positionMs = 60_000L, durationMs = 600_000L,
+        lastListenedAt = 1L,
+    )
 
     @Test
     fun `search error sets error state`() = runTest {
@@ -259,5 +306,29 @@ class FakePodcastPrefs : AppPreferences {
     }
     override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? {
         return savedProgress.find { it.episodeAudioUrl == audioUrl }
+    }
+
+    // Listening history
+    val _listenFlow = MutableStateFlow<List<ListenHistoryEntry>>(emptyList())
+    override val listenHistory: Flow<List<ListenHistoryEntry>> = _listenFlow
+    var lastRemovedListenUrl: String? = null
+    var listenHistoryCleared = false
+    override suspend fun recordListen(entry: ListenHistoryEntry) {
+        _listenFlow.value = listOf(entry) + _listenFlow.value.filter { it.episodeAudioUrl != entry.episodeAudioUrl }
+    }
+    override suspend fun removeListenHistory(audioUrl: String) {
+        lastRemovedListenUrl = audioUrl
+        _listenFlow.value = _listenFlow.value.filter { it.episodeAudioUrl != audioUrl }
+    }
+    override suspend fun clearListenHistory() {
+        listenHistoryCleared = true
+        _listenFlow.value = emptyList()
+    }
+
+    // Audio boost
+    val _boostFlow = MutableStateFlow(0)
+    override val audioBoostPercent: Flow<Int> = _boostFlow
+    override suspend fun setAudioBoostPercent(percent: Int) {
+        _boostFlow.value = percent
     }
 }

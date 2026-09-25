@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
 import com.steph.frenchradio.model.PodcastChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -28,8 +30,11 @@ class DataStoreAppPreferences(
         val FAVORITES_KEY = stringSetPreferencesKey("radio_favorites")
         val PODCAST_HISTORY_KEY = stringPreferencesKey("podcast_history")
         val EPISODE_PROGRESS_KEY = stringPreferencesKey("episode_progress")
+        val AUDIO_BOOST_KEY = intPreferencesKey("audio_boost_percent")
         const val MAX_HISTORY = 50
         const val MAX_PROGRESS = 100
+        val LISTEN_HISTORY_KEY = stringPreferencesKey("listen_history")
+        const val MAX_LISTEN_HISTORY = 500
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -151,5 +156,92 @@ class DataStoreAppPreferences(
     override suspend fun getEpisodeProgress(audioUrl: String): EpisodeProgress? {
         val all = episodeProgressList.first()
         return all.find { it.episodeAudioUrl == audioUrl }
+    }
+
+    // --- Listening History ---
+
+    override val listenHistory: Flow<List<ListenHistoryEntry>> =
+        dataStore.data.map { prefs ->
+            readListenHistory(prefs).sortedByDescending { it.lastListenedAt }
+        }
+
+    override suspend fun recordListen(entry: ListenHistoryEntry) {
+        dataStore.edit { prefs ->
+            val current = readListenHistory(prefs).toMutableList()
+            val existing = current.find { it.episodeAudioUrl == entry.episodeAudioUrl }
+            current.removeAll { it.episodeAudioUrl == entry.episodeAudioUrl }
+            val merged = entry.copy(
+                // A "start" event (position 0) must not erase a known position
+                positionMs = if (entry.positionMs > 0 || existing == null) entry.positionMs
+                    else existing.positionMs,
+                durationMs = if (entry.durationMs > 0 || existing == null) entry.durationMs
+                    else existing.durationMs,
+                completed = entry.completed || existing?.completed == true,
+                lastListenedAt = if (entry.lastListenedAt > 0) entry.lastListenedAt
+                    else System.currentTimeMillis(),
+            )
+            current.add(0, merged)
+            val trimmed = current.sortedByDescending { it.lastListenedAt }.take(MAX_LISTEN_HISTORY)
+            prefs[LISTEN_HISTORY_KEY] = json.encodeToString(trimmed)
+        }
+    }
+
+    override suspend fun removeListenHistory(audioUrl: String) {
+        dataStore.edit { prefs ->
+            val filtered = readListenHistory(prefs).filter { it.episodeAudioUrl != audioUrl }
+            prefs[LISTEN_HISTORY_KEY] = json.encodeToString(filtered)
+        }
+    }
+
+    override suspend fun clearListenHistory() {
+        dataStore.edit { prefs ->
+            prefs[LISTEN_HISTORY_KEY] = "[]"
+        }
+    }
+
+    /**
+     * Reads the stored history. On first use (key absent), seeds it from the
+     * pre-existing episode progress entries so earlier listens are not lost.
+     */
+    private fun readListenHistory(prefs: Preferences): List<ListenHistoryEntry> {
+        val raw = prefs[LISTEN_HISTORY_KEY]
+        if (raw == null) {
+            val progress = try {
+                json.decodeFromString<List<EpisodeProgress>>(prefs[EPISODE_PROGRESS_KEY] ?: "[]")
+            } catch (_: Exception) {
+                emptyList()
+            }
+            return progress.map {
+                ListenHistoryEntry(
+                    episodeAudioUrl = it.episodeAudioUrl,
+                    episodeTitle = it.episodeTitle,
+                    channelId = it.channelId,
+                    channelName = it.channelName,
+                    channelArtwork = it.channelArtwork,
+                    feedUrl = it.feedUrl,
+                    positionMs = it.positionMs,
+                    durationMs = it.durationMs,
+                    lastListenedAt = it.updatedAt,
+                )
+            }
+        }
+        return try {
+            json.decodeFromString<List<ListenHistoryEntry>>(raw)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    // --- Audio Boost ---
+
+    override val audioBoostPercent: Flow<Int> =
+        dataStore.data.map { prefs ->
+            (prefs[AUDIO_BOOST_KEY] ?: 0).coerceIn(0, 100)
+        }
+
+    override suspend fun setAudioBoostPercent(percent: Int) {
+        dataStore.edit { prefs ->
+            prefs[AUDIO_BOOST_KEY] = percent.coerceIn(0, 100)
+        }
     }
 }

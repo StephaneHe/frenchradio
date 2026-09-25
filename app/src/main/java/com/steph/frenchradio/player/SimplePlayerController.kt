@@ -2,6 +2,7 @@ package com.steph.frenchradio.player
 
 import com.steph.frenchradio.data.AppPreferences
 import com.steph.frenchradio.model.EpisodeProgress
+import com.steph.frenchradio.model.ListenHistoryEntry
 import com.steph.frenchradio.model.PodcastChannel
 import com.steph.frenchradio.model.PodcastEpisode
 import com.steph.frenchradio.model.RadioStation
@@ -23,6 +24,10 @@ import kotlinx.coroutines.launch
  * - On stop
  * - Every [SAVE_INTERVAL_MS] while playing
  * - Progress is removed when the episode finishes (onEnded)
+ *
+ * Every podcast listen is also recorded in the listening history
+ * ([AppPreferences.recordListen]): on start, on each progress save, and as
+ * "completed" when the episode ends.
  */
 class SimplePlayerController(
     private val engine: AudioEngine,
@@ -81,10 +86,17 @@ class SimplePlayerController(
         engine.prepare(episode.audioUrl)
         engine.play()
 
-        // Resume at saved position if available
+        // Resume at saved position if available (an already-played episode restarts from 0),
+        // and record the listen in the history.
         scope?.launch {
+            prefs?.recordListen(
+                buildHistoryEntry(episode.audioUrl, episode.title, channel,
+                    positionMs = 0L, durationMs = episode.durationSeconds * 1000L)
+            )
             val saved = prefs?.getEpisodeProgress(episode.audioUrl)
-            if (saved != null && saved.positionMs > 0) {
+            val alreadyPlayed = saved != null && saved.durationMs > 0 &&
+                saved.positionMs >= saved.durationMs * ListenHistoryEntry.PLAYED_THRESHOLD
+            if (saved != null && saved.positionMs > 0 && !alreadyPlayed) {
                 engine.seekTo(saved.positionMs)
                 _playerState.update { it.copy(positionMs = saved.positionMs) }
             }
@@ -142,11 +154,20 @@ class SimplePlayerController(
     override fun onEnded() {
         _playerState.update { it.copy(isPlaying = false, isBuffering = false) }
         cancelPeriodicSave()
-        // Episode finished — remove saved progress
+        // Episode finished — remove saved progress, mark as played in history
         val state = _playerState.value
         if (!state.isRadio && state.currentStreamUrl != null) {
+            val channel = currentChannel
+            val durationMs = if (engine.durationMs > 0) engine.durationMs else state.durationMs
             scope?.launch {
                 prefs?.removeEpisodeProgress(state.currentStreamUrl)
+                if (channel != null) {
+                    prefs?.recordListen(
+                        buildHistoryEntry(state.currentStreamUrl, state.currentTitle, channel,
+                            positionMs = durationMs, durationMs = durationMs)
+                            .copy(completed = true)
+                    )
+                }
             }
         }
     }
@@ -177,8 +198,30 @@ class SimplePlayerController(
         )
         scope?.launch {
             prefs?.saveEpisodeProgress(progress)
+            prefs?.recordListen(
+                buildHistoryEntry(progress.episodeAudioUrl, progress.episodeTitle, channel,
+                    positionMs = progress.positionMs, durationMs = progress.durationMs)
+            )
         }
     }
+
+    private fun buildHistoryEntry(
+        audioUrl: String,
+        title: String,
+        channel: PodcastChannel,
+        positionMs: Long,
+        durationMs: Long,
+    ) = ListenHistoryEntry(
+        episodeAudioUrl = audioUrl,
+        episodeTitle = title,
+        channelId = channel.id,
+        channelName = channel.name,
+        channelArtwork = channel.artworkUrl,
+        feedUrl = channel.feedUrl,
+        positionMs = positionMs,
+        durationMs = durationMs,
+        lastListenedAt = System.currentTimeMillis(),
+    )
 
     private fun startPeriodicSave() {
         if (_playerState.value.isRadio) return

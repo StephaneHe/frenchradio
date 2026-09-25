@@ -49,6 +49,7 @@ data class ItunesResult(
             author = artistName ?: "",
             artworkUrl = artworkUrl600 ?: artworkUrl100 ?: "",
             feedUrl = feedUrl,
+            source = "iTunes",
         )
     }
 }
