@@ -9,6 +9,13 @@ Per fleet rules: every shipped build bumps the version (`versionCode` +1, `versi
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-25
+
+### Changed
+- **"Played" / restart-from-0 threshold raised from 90 % to 98 %** (single constant `ListenHistoryEntry.PLAYED_THRESHOLD`). Applies to the "Lu" status in the history, the "Lu"/"En cours" markers in episode lists, search, browse and recent podcasts, and resuming an episode (history tab and "In Progress" list): below 98 % playback resumes at the saved position, from 98 % it restarts from the beginning. Reaching the end still counts as "Lu".
+- Migration: no data rewrite needed — threshold-based "Lu" was always computed, never persisted (only a real end sets the sticky `completed` flag). Episodes shown "Lu" under the old rule at 90–98 % without reaching the end now appear "En cours" at their saved position.
+- `versionCode` 7 → 8, `versionName` 1.5.0 → 1.5.1.
+
 ## [1.5.0] - 2026-09-25
 
 ### Added
@@ -53,6 +60,7 @@ Per fleet rules: every shipped build bumps the version (`versionCode` +1, `versi
 - `app/build.gradle.kts`: enabled `buildFeatures.buildConfig = true` so `BuildConfig.VERSION_NAME` is generated and consumable from Compose code.
 
 [Unreleased]: #
+[1.5.1]: #151---2026-09-25
 [1.5.0]: #150---2026-09-25
 [1.4.0]: #140---2026-05-03
 [1.3.0]: #130---2026-04-30

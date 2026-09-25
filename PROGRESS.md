@@ -99,6 +99,7 @@
 - [x] C6. Markers "Lu" / "En cours" on episode rows, channel pills on search / browse / recent
 - [x] C7. Tests (DataStoreListenHistoryTest, player + ViewModel) — full suite green
 - [x] C8. Version 1.5.0 / vc7, CHANGELOG, APK built, local commit
+- [x] C9. (v1.5.1) "Played" / restart threshold 90 % → 98 % (`PLAYED_THRESHOLD`), tests updated
 
 ## Final
 - [ ] Full test suite green

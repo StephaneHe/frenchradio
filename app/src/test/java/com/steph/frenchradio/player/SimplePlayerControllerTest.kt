@@ -329,18 +329,9 @@ class SimplePlayerControllerTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `playPodcast restarts from zero when saved position is past played threshold`() = runTest {
+    fun `playPodcast restarts from zero when saved position is at or past 98 percent`() = runTest {
         val fakePrefs = FakePlayerPrefs()
-        fakePrefs.savedProgress.add(EpisodeProgress(
-            episodeAudioUrl = "http://test/ep.mp3",
-            episodeTitle = "Ep 1",
-            channelId = "pod1",
-            channelName = "My Podcast",
-            channelArtwork = "http://test/art.jpg",
-            feedUrl = "http://test/feed.xml",
-            positionMs = 580000L,
-            durationMs = 600000L,
-        ))
+        fakePrefs.savedProgress.add(makeProgress(positionMs = 588000L)) // 98 %
         val ctrl = SimplePlayerController(engine, fakePrefs, this)
 
         ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
@@ -348,6 +339,30 @@ class SimplePlayerControllerTest {
 
         assertEquals(0L, engine.lastSeekPosition)
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `playPodcast resumes at position between 90 and 98 percent`() = runTest {
+        val fakePrefs = FakePlayerPrefs()
+        fakePrefs.savedProgress.add(makeProgress(positionMs = 570000L)) // 95 %
+        val ctrl = SimplePlayerController(engine, fakePrefs, this)
+
+        ctrl.playPodcast(makePodcastEpisode("Ep 1", 600), makePodcastChannel("pod1", "My Podcast"))
+        advanceUntilIdle()
+
+        assertEquals(570000L, engine.lastSeekPosition)
+    }
+
+    private fun makeProgress(positionMs: Long) = EpisodeProgress(
+        episodeAudioUrl = "http://test/ep.mp3",
+        episodeTitle = "Ep 1",
+        channelId = "pod1",
+        channelName = "My Podcast",
+        channelArtwork = "http://test/art.jpg",
+        feedUrl = "http://test/feed.xml",
+        positionMs = positionMs,
+        durationMs = 600000L,
+    )
 
     // --- Helpers ---
 

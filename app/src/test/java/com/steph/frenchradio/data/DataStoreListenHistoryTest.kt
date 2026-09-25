@@ -115,12 +115,23 @@ class DataStoreListenHistoryTest {
         assertEquals(listOf("new", "old"), prefs.listenHistory.first().map { it.episodeAudioUrl })
     }
 
+    @Test
+    fun `entry stored at 95 percent without end is in progress at its position`() = runTest {
+        // Migration case: marked "Lu" under the old 90 % rule, never completed
+        val prefs = createPrefs()
+        prefs.recordListen(entry("a", positionMs = 570_000L))
+        val e = prefs.listenHistory.first()[0]
+        assertEquals(ListenStatus.STARTED, e.status)
+        assertEquals(570_000L, e.positionMs)
+    }
+
     // --- Status rule ---
 
     @Test
-    fun `status is STARTED below 90 percent and PLAYED at or above`() {
-        assertEquals(ListenStatus.STARTED, entry("a", positionMs = 539_000L).status)
-        assertEquals(ListenStatus.PLAYED, entry("a", positionMs = 540_000L).status)
+    fun `status is STARTED below 98 percent and PLAYED at or above`() {
+        assertEquals(ListenStatus.STARTED, entry("a", positionMs = 540_000L).status) // 90 %
+        assertEquals(ListenStatus.STARTED, entry("a", positionMs = 587_999L).status)
+        assertEquals(ListenStatus.PLAYED, entry("a", positionMs = 588_000L).status) // 98 %
         assertEquals(ListenStatus.PLAYED, entry("a", completed = true).status)
         assertEquals(ListenStatus.STARTED, entry("a", positionMs = 5_000L, durationMs = 0L).status)
     }

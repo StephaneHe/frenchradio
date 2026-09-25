@@ -73,8 +73,13 @@ data class ListenHistoryEntry(
         }
 
     companion object {
-        /** An episode counts as "played" once 90 % of it has been listened to. */
-        const val PLAYED_THRESHOLD = 0.9
+        /**
+         * An episode counts as "played" once 98 % of it has been listened to (or its end
+         * was reached). Also the point past which resuming restarts from 0.
+         * Threshold-based "played" is computed, never persisted: only a real end sets
+         * [completed], so changing this value re-classifies existing entries.
+         */
+        const val PLAYED_THRESHOLD = 0.98
     }
 }
 
