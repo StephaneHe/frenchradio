@@ -2,15 +2,15 @@
 
 Android app to stream French radio stations and search, browse and listen to podcasts — Kotlin, Jetpack Compose and Media3 ExoPlayer.
 
-![Version](https://img.shields.io/badge/version-1.5.2-blue)
+![Version](https://img.shields.io/badge/version-1.5.3-blue)
 ![Platform](https://img.shields.io/badge/platform-Android%2012%2B-green)
-![License](https://img.shields.io/badge/license-proprietary-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-yellow)
 
 ## Overview
 
 FrenchRadio brings live French radio and podcasts together in one lightweight app: no account, no ads, no tracking. The station list ships with the app but can be edited on the device, and podcast search aggregates several public directories so that French-language shows are easier to find.
 
-**Status:** active personal project — current version **1.5.2** (see [CHANGELOG.md](CHANGELOG.md)).
+**Status:** active personal project — current version **1.5.3** (see [CHANGELOG.md](CHANGELOG.md)).
 
 ## Features
 
@@ -165,15 +165,17 @@ Detailed task tracking: [PROGRESS.md](PROGRESS.md).
 
 - Signing keys, keystores and `local.properties` are git-ignored and must never be committed.
 - The app only performs outgoing HTTP(S) requests (radio streams, podcast directories, RSS feeds); it exposes no network service and collects no personal data.
-- To report a vulnerability, contact the maintainer privately (GitHub profile below) rather than opening a public issue.
+- To report a vulnerability, use GitHub's private vulnerability reporting (Security tab) or contact the maintainer privately rather than opening a public issue.
 
 ## Contributing
 
-Private repository. Read [CLAUDE.md](CLAUDE.md) for project conventions. Work on a branch, keep the test suite green, and include a version bump plus a CHANGELOG entry with every change that ships.
+Issues and pull requests are welcome. Read [CLAUDE.md](CLAUDE.md) for project conventions. Work on a branch, keep the test suite green, and include a version bump plus a CHANGELOG entry with every change that ships.
 
 ## License
 
-Proprietary — all rights reserved.
+[MIT](LICENSE) © 2026 Stéphane Hercot.
+
+Radio streams, logos and podcast content belong to their respective broadcasters and publishers; this project only links to publicly available streams and feeds.
 
 ## Author
 

@@ -9,6 +9,15 @@ Per fleet rules: every shipped build bumps the version (`versionCode` +1, `versi
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-10-02
+
+### Added
+- `LICENSE`: MIT license (© 2026 Stéphane Hercot) ahead of making the repository public.
+
+### Changed
+- README: MIT license badge and section, contribution and vulnerability-reporting notes for a public repository.
+- `versionCode` 9 → 10, `versionName` 1.5.2 → 1.5.3.
+
 ## [1.5.2] - 2026-10-01
 
 ### Changed
@@ -66,6 +75,7 @@ Per fleet rules: every shipped build bumps the version (`versionCode` +1, `versi
 - `app/build.gradle.kts`: enabled `buildFeatures.buildConfig = true` so `BuildConfig.VERSION_NAME` is generated and consumable from Compose code.
 
 [Unreleased]: #
+[1.5.3]: #153---2026-10-02
 [1.5.2]: #152---2026-10-01
 [1.5.1]: #151---2026-09-25
 [1.5.0]: #150---2026-09-25
