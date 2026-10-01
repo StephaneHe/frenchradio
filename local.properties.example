@@ -1,0 +1,5 @@
+sdk.dir=/path/to/Android/Sdk
+signing.storeFile=/path/to/your.keystore
+signing.storePassword=CHANGE_ME
+signing.keyAlias=CHANGE_ME
+signing.keyPassword=CHANGE_ME

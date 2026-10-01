@@ -41,6 +41,6 @@ These two rules apply to **every** release of this project. They are non-negotia
 
 ## Build & ship
 
-- Signing config uses the local debug keystore (`REDACTED_KEYSTORE_PATH`) — the release APK is signed but with debug credentials, suitable for sideload but not Play Store.
+- Signing config is read from `local.properties` (`signing.*` keys, see `local.properties.example`) or `SIGNING_*` env vars — never hardcode credentials or paths — the release APK is signed but with debug credentials, suitable for sideload but not Play Store.
 - Release build: `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk`. R8 minification + resource shrinking are enabled.
 - Before shipping a release: bump `versionCode`/`versionName`, add a `CHANGELOG.md` entry, and verify the new version shows in the TopAppBar of the built APK.

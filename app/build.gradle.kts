@@ -18,12 +18,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Signing credentials come from local.properties (not versioned) or env vars.
+    // Keys: signing.storeFile, signing.storePassword, signing.keyAlias, signing.keyPassword
+    val localProps = java.util.Properties().apply {
+        val f = rootProject.file("local.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    fun signingProp(key: String, env: String): String? =
+        localProps.getProperty(key) ?: System.getenv(env)
+
     signingConfigs {
         create("release") {
-            storeFile = file("REDACTED_KEYSTORE_PATH")
-            storePassword = "REDACTED"
-            keyAlias = "androiddebugkey"
-            keyPassword = "REDACTED"
+            signingProp("signing.storeFile", "SIGNING_STORE_FILE")?.let { storeFile = file(it) }
+            storePassword = signingProp("signing.storePassword", "SIGNING_STORE_PASSWORD")
+            keyAlias = signingProp("signing.keyAlias", "SIGNING_KEY_ALIAS")
+            keyPassword = signingProp("signing.keyPassword", "SIGNING_KEY_PASSWORD")
         }
     }
 

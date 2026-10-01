@@ -26,3 +26,8 @@ captures/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Build outputs
+release/
+*.apk
+*.aab
