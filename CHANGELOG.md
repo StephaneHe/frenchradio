@@ -9,6 +9,12 @@ Per fleet rules: every shipped build bumps the version (`versionCode` +1, `versi
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-01
+
+### Changed
+- README rewritten as a professional README: overview, status, up-to-date features (multi-source search, history, audio boost, station editor), requirements, configuration keys (`local.properties.example`, `SIGNING_*`), architecture, tests, release build, versioning, roadmap, security, license. Removed the reference to a no-longer-versioned prebuilt APK.
+- `versionCode` 8 → 9, `versionName` 1.5.1 → 1.5.2.
+
 ## [1.5.1] - 2026-09-25
 
 ### Changed
@@ -60,6 +66,7 @@ Per fleet rules: every shipped build bumps the version (`versionCode` +1, `versi
 - `app/build.gradle.kts`: enabled `buildFeatures.buildConfig = true` so `BuildConfig.VERSION_NAME` is generated and consumable from Compose code.
 
 [Unreleased]: #
+[1.5.2]: #152---2026-10-01
 [1.5.1]: #151---2026-09-25
 [1.5.0]: #150---2026-09-25
 [1.4.0]: #140---2026-05-03
